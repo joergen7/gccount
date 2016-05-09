@@ -1,7 +1,7 @@
 ---
 driver:
   name: vagrant
-  costumize:
+  custumize:
     cpus: 2
 
 ## The forwarded_port port feature lets you connect to ports on the VM guest via
