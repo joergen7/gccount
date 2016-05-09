@@ -3,24 +3,47 @@
 %% =========================================================
 
 deftask gunzip( out( File ) : gz( File ) )in bash *{
-  out=${gz%.gz}
+  out=unzipped_${gz%.gz}
   gzip -c -d $gz > $out
+}*
+
+deftask split( <partlist( File )> : file( File ) nline ) in bash *{
+  split -l $nline $file split_$file.
+  partlist=split_*
+}*
+
+deftask char-count( cnt : file( File ) pattern )in bash *{
+  set +o pipefail
+  cnt=`cat $file | fold -w 1 | grep [$pattern] | wc -l`
+}*
+
+deftask sum( result : <n> )in perl *{
+  $result = eval join '+', @n;
+}*
+
+deftask div( result : nom den )in perl *{
+  $result = $nom/$den;
 }*
 
 %% =========================================================
 %% INPUT DATA
 %% =========================================================
 
-fa_gz = "Homo_sapiens.GRCh38.dna.chromosome.Y.fa.gz";
+fa_gz           = "Homo_sapiens.GRCh38.dna.chromosome.Y.fa.gz";
+lines_per_split = 100000;
 
 %% =========================================================
 %% WORKFLOW DEFINITION
 %% =========================================================
 
-fa = gunzip( gz: fa_gz );
+fa       = gunzip( gz: fa_gz );
+split_fa = split( file: fa, nline: lines_per_split );
+gc       = sum( n: char-count( file: split_fa, pattern: "GC" ) );
+at       = sum( n: char-count( file: split_fa, pattern: "AT" ) );
+gc_ratio = div( nom: gc, den: sum( n: gc at ) );
 
 %% =========================================================
 %% QUERY
 %% =========================================================
 
-fa;
+gc_ratio;
